@@ -58,6 +58,7 @@ type Table2Struct struct {
 	config         *T2tConfig
 	err            error
 	realNameMethod string
+	realEngineMethod string
 	enableJsonTag  bool   // 是否添加json的tag, 默认不添加
 	packageName    string // 生成struct的包名(默认为空的话, 则取名为: package model)
 	tagKey         string // tag字段的key值,默认是orm
@@ -91,6 +92,11 @@ func (t *Table2Struct) PackageName(r string) *Table2Struct {
 
 func (t *Table2Struct) RealNameMethod(r string) *Table2Struct {
 	t.realNameMethod = r
+	return t
+}
+
+func (t *Table2Struct) RealEngineMethod(r string) *Table2Struct {
+	t.realEngineMethod = r
 	return t
 }
 
@@ -181,6 +187,22 @@ func (t *Table2Struct) Run() error {
 		}
 		structContent += tab(depth-1) + "}\n\n"
 
+		var strEngine sql.NullString
+		{
+			sqlQuery := fmt.Sprintf("SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() and TABLE_NAME='%v' ",
+				tableRealName)
+			selectRows, err := t.db.Query(sqlQuery)
+
+			if err != nil {
+				fmt.Println(err.Error())
+				return err
+			}
+
+			for selectRows.Next() {
+				_ = selectRows.Scan(&strEngine)
+			}
+		}
+
 		// 添加 method 获取真实表名
 		if t.realNameMethod != "" {
 			structContent += fmt.Sprintf("func (*%s) %s() string {\n",
@@ -189,6 +211,15 @@ func (t *Table2Struct) Run() error {
 				tab(depth), tableRealName)
 			structContent += "}\n\n"
 		}
+
+		if t.realEngineMethod != "" && strEngine.Valid {
+			structContent += fmt.Sprintf("func (*%s) %s() string {\n",
+				tableName, t.realEngineMethod)
+			structContent += fmt.Sprintf("%sreturn \"%s\"\n",
+				tab(depth), strEngine.String)
+			structContent += "}\n\n"
+		}
+
 		fmt.Println(structContent)
 	}
 
