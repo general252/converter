@@ -244,7 +244,7 @@ type column struct {
 func (t *Table2Struct) getColumns(table ...string) (tableColumns map[string][]column, err error) {
 	tableColumns = make(map[string][]column)
 	// sql
-	var sqlStr = `SELECT COLUMN_NAME,DATA_TYPE,IS_NULLABLE,TABLE_NAME,COLUMN_COMMENT
+	var sqlStr = `SELECT COLUMN_NAME,DATA_TYPE,IS_NULLABLE,TABLE_NAME,COLUMN_COMMENT,CHARACTER_MAXIMUM_LENGTH
 		FROM information_schema.COLUMNS 
 		WHERE table_schema = DATABASE()`
 	// 是否指定了具体的table
@@ -264,7 +264,8 @@ func (t *Table2Struct) getColumns(table ...string) (tableColumns map[string][]co
 
 	for rows.Next() {
 		col := column{}
-		err = rows.Scan(&col.ColumnName, &col.Type, &col.Nullable, &col.TableName, &col.ColumnComment)
+		var columnCharMaxLen sql.NullInt64
+		err = rows.Scan(&col.ColumnName, &col.Type, &col.Nullable, &col.TableName, &col.ColumnComment, &columnCharMaxLen)
 
 		if err != nil {
 			fmt.Println(err.Error())
@@ -295,9 +296,18 @@ func (t *Table2Struct) getColumns(table ...string) (tableColumns map[string][]co
 		}
 		if t.enableJsonTag {
 			//col.Json = fmt.Sprintf("`json:\"%s\" %s:\"%s\"`", col.Json, t.config.TagKey, col.Json)
-			col.Tag = fmt.Sprintf("`%s:\"%s\" json:\"%s\"`", t.tagKey, col.Tag, col.Tag)
+			if col.Type == "string" && columnCharMaxLen.Valid {
+				col.Tag = fmt.Sprintf("`%s:\"size(%v);column(%s)\" json:\"%s\"`",
+					t.tagKey, columnCharMaxLen.Int64, col.Tag, col.Tag)
+			} else {
+				col.Tag = fmt.Sprintf("`%s:\"%s\" json:\"%s\"`", t.tagKey, col.Tag, col.Tag)
+			}
 		} else {
-			col.Tag = fmt.Sprintf("`%s:\"%s\"`", t.tagKey, col.Tag)
+			if col.Type == "string" && columnCharMaxLen.Valid {
+				col.Tag = fmt.Sprintf("`%s:\"size(%v);column(%s)\"`", t.tagKey, columnCharMaxLen.Int64, col.Tag)
+			} else {
+				col.Tag = fmt.Sprintf("`%s:\"%s\"`", t.tagKey, col.Tag)
+			}
 		}
 		//columns = append(columns, col)
 		if _, ok := tableColumns[col.TableName]; !ok {

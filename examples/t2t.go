@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/gohouse/converter"
+	"github.com/general252/converter"
 )
 
 func main() {

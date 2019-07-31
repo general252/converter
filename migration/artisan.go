@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/gohouse/gorose"
+	"github.com/general252/gorose"
 )
 
 // ./artisan make (create_users_table)	生成迁移:创建用户表

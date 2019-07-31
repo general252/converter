@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/gohouse/converter"
+	"github.com/general252/converter"
 	"log"
 )
 
