@@ -1,3 +1,12 @@
+增加TableEngine
+```
+	// 是否添加结构体方法获取表名
+	RealNameMethod("TableName").
+	// 是否添加结构体方法获取表的引擎
+	RealEngineMethod("TableEngine").
+```
+
+
 a lib for golang , generate mysql table schema to golang struct  
 -----
 mysql表结构自动生成golang struct  
